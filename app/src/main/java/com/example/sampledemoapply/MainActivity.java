@@ -13,7 +13,6 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.sampledemoapply.data.SensorData;
 
-import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -26,9 +25,6 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
-    private static final String PATH_STORAGE = "/storage/";
-    private static final String SELF = "self";
-    private static final String EMULATED = "emulated";
     private static final Integer START_DEFAULT = 500; // センサー値蓄積開始時間
     private static final Integer INTERVAL_DEFAULT = 500; // センサー値蓄積間隔(0.5秒)
 
@@ -78,8 +74,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        start = 15 * 1000;    // スタート時間 TODO:後々この値をユーザが設定可能できるようにする
-        interval = 15 * 1000; // 間隔時間（30秒） TODO:後々この値をユーザが設定可能できるようにする
+        start = 60 *30 * 1000;    // スタート時間     TODO:後々この値をユーザが設定可能できるようにする
+        interval = 60 * 30 * 1000; // 間隔時間（30分） TODO:後々この値をユーザが設定可能できるようにする
 
         values1 = (TextView)findViewById(R.id.accel); // 加速度
         values2 = (TextView)findViewById(R.id.gyro); // ジャイロ
@@ -118,7 +114,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                         String fileName = "data.csv";
                         // 保存先
                         String path = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS).toString();
-//                        String path = "/storage/" + sdMount();
                         String file = path + "/" + fileName;
 
                         try {
@@ -256,18 +251,5 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         BigDecimal bd = new BigDecimal(sensorData);
         ret = bd.setScale(2,RoundingMode.HALF_UP);// 切り上げ
         return ret;
-    }
-
-    public static String sdMount(){
-        File file = new File(PATH_STORAGE);
-        String[] fileList = file.list();
-        if(fileList.length >= 3) {
-            for (int i = 0; i < fileList.length; i++) {
-                if(!fileList[i].equals(EMULATED) && !fileList[i].equals(SELF)) {
-                    return fileList[i];
-                }
-            }
-        }
-        return EMULATED + "/0";
     }
 }
