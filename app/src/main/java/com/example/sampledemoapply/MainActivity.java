@@ -14,10 +14,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.sampledemoapply.data.SensorData;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.SimpleDateFormat;
@@ -27,98 +25,7 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
-/*
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
-
-    protected final static double RAD2DEG = 180/Math.PI;
-
-    // センサーマネージャ
-    private SensorManager sensorManager;
-
-    float[] rotationMatrix = new float[9];
-    float[] gravity = new float[3];
-    float[] geomagnetic = new float[3];
-    float[] attitude = new float[3];
-
-    TextView azimuthText;
-    TextView pitchText;
-    TextView rollText;
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-
-        findViews();
-        initSensor();
-    }
-
-    public void onResume(){
-        super.onResume();
-        sensorManager.registerListener(
-                this,
-                sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
-                SensorManager.SENSOR_DELAY_GAME);
-        sensorManager.registerListener(
-                this,
-                sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD),
-                SensorManager.SENSOR_DELAY_GAME);
-    }
-
-    public void onPause(){
-        super.onPause();
-        sensorManager.unregisterListener(this);
-    }
-
-    protected void findViews(){
-        azimuthText = (TextView)findViewById(R.id.azimuth);
-        pitchText = (TextView)findViewById(R.id.pitch);
-        rollText = (TextView)findViewById(R.id.roll);
-    }
-
-    protected void initSensor(){
-        sensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
-    }
-
-    @Override
-    public void onAccuracyChanged(Sensor sensor, int accuracy) {}
-
-    @Override
-    public void onSensorChanged(SensorEvent event) {
-
-        switch(event.sensor.getType()){
-            case Sensor.TYPE_MAGNETIC_FIELD:
-                geomagnetic = event.values.clone();
-                break;
-            case Sensor.TYPE_ACCELEROMETER:
-                gravity = event.values.clone();
-                break;
-        }
-
-        if(geomagnetic != null && gravity != null){
-
-            SensorManager.getRotationMatrix(
-                    rotationMatrix, null,
-                    gravity, geomagnetic);
-
-            SensorManager.getOrientation(
-                    rotationMatrix,
-                    attitude);
-
-            azimuthText.setText(Integer.toString(
-                    (int)(attitude[0] * RAD2DEG)));
-            pitchText.setText(Integer.toString(
-                    (int)(attitude[1] * RAD2DEG)));
-            rollText.setText(Integer.toString(
-                    (int)(attitude[2] * RAD2DEG)));
-
-        }
-    }
-}
-*/
-
-public class MainActivity extends AppCompatActivity implements SensorEventListener {
-
     private static final String PATH_STORAGE = "/storage/";
     private static final String SELF = "self";
     private static final String EMULATED = "emulated";
@@ -166,16 +73,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     //タイマー処理用
     private Timer mTimer = null;
     Handler mHandler = new Handler();
-
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        start = 60 * 1000;    // スタート時間 TODO:後々この値をユーザが設定可能できるようにする
-        interval = 60 * 1000; // 間隔時間（1分） TODO:後々この値をユーザが設定可能できるようにする
+        start = 15 * 1000;    // スタート時間 TODO:後々この値をユーザが設定可能できるようにする
+        interval = 15 * 1000; // 間隔時間（30秒） TODO:後々この値をユーザが設定可能できるようにする
 
-        values1 = (TextView)findViewById(R.id.kasoku); // 加速度
+        values1 = (TextView)findViewById(R.id.accel); // 加速度
         values2 = (TextView)findViewById(R.id.gyro); // ジャイロ
         values3 = (TextView)findViewById(R.id.inclination); // 傾き
         manager = (SensorManager)getSystemService(SENSOR_SERVICE);
@@ -208,12 +114,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             public void run() {
                 mHandler.post( new Runnable(){
                     public void run(){
-                        FileOutputStream outputStream;
                         String header = "DATE,TIME,AX,AY,AZ,GX,GY,GZ\n";// ヘッダー部分
-                        // 保存先 ※本来なら外部ストレージを参照するがAPIの関係で内部ストレージを参照する
-                        String path = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS).toString() + "/data.csv";
+                        String fileName = "data.csv";
+                        // 保存先
+                        String path = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS).toString();
+//                        String path = "/storage/" + sdMount();
+                        String file = path + "/" + fileName;
 
-//                        String path = "/storage/" + sdMount() + "/DCIM/data.csv";
                         try {
                             String str = header;
                             for(SensorData list:data){
@@ -239,21 +146,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                                     + convertSensorValue(jairo[SENSOR_PARAMETER_Z]) + "\n";
                                 */
                             }
+                            FileOutputStream outputStream = new FileOutputStream(file);
 
-                            outputStream = new FileOutputStream(path);
                             // ログデータ出力
                             outputStream.write(str.getBytes());
-                            // 書き込み
-                            outputStream.flush();
                             outputStream.close();
-                        }
-                        catch(FileNotFoundException e){
-                            e.printStackTrace();
-                        }
-                        catch(UnsupportedEncodingException e){
-                            e.printStackTrace();
-                        }
-                        catch(IOException e){
+                        } catch(IOException e){
                             e.printStackTrace();
                         }
                     }
