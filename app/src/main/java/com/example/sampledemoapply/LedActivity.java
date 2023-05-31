@@ -8,7 +8,7 @@ import java.io.IOException;
 
 public class LedActivity extends Activity {
 
-    // Function: Set  "LED 1"  red diode light on
+    // 第一LET(赤) 点灯
     public void Led1_RedOn() {
         try {
             File file=new File("/sys/class/leds/led1-red/brightness");
@@ -19,8 +19,7 @@ public class LedActivity extends Activity {
             e.printStackTrace();
         }
     }
-
-    // Function: Set  "LED 1"  red diode light off
+    // 第一LED(赤)　消灯
     public void Led1_RedOff() {
         try {
             File file=new File("/sys/class/leds/led1-red/brightness");
@@ -33,7 +32,7 @@ public class LedActivity extends Activity {
         }
     }
 
-    // Function: Set  "LED 1"  green diode light on
+    // 第一LED(緑)　点灯
     public void Led1_GreenOn() {
         try {
             File file=new File("/sys/class/leds/led1-green/brightness");
@@ -44,8 +43,7 @@ public class LedActivity extends Activity {
             e.printStackTrace();
         }
     }
-
-    // Function: Set  "LED 1"  green diode light off
+    // 第一LED(緑)　消灯
     public void Led1_GreenOff() {
         try {
             File file=new File("/sys/class/leds/led1-green/brightness");
@@ -57,7 +55,7 @@ public class LedActivity extends Activity {
         }
     }
 
-    // Function: Set  "LED 2"  red diode light on
+    // 第二LED(赤)　点灯
     public void Led2_RedOn() {
         try {
             File file=new File("/sys/class/leds/led2-red/brightness");
@@ -68,8 +66,7 @@ public class LedActivity extends Activity {
             e.printStackTrace();
         }
     }
-
-    // Function: Set  "LED 2"  red diode light off
+    // 第二LED(赤)　消灯
     public void Led2_RedOff() {
         try {
             File file=new File("/sys/class/leds/led2-red/brightness");
@@ -82,7 +79,7 @@ public class LedActivity extends Activity {
         }
     }
 
-    // Function: Set  "LED 2"  green diode light on
+    // 第二LED(緑)　発光
     public void Led2_GreenOn() {
         try {
             File file=new File("/sys/class/leds/led2-green/brightness");
@@ -93,8 +90,7 @@ public class LedActivity extends Activity {
             e.printStackTrace();
         }
     }
-
-    // Function: Set  "LED 2"  green diode light off
+    // 第二LED(緑)　消灯
     public void Led2_GreenOff() {
         try {
             File file=new File("/sys/class/leds/led2-green/brightness");

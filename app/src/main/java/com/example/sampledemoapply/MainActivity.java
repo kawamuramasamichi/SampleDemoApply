@@ -4,31 +4,32 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.os.BatteryManager;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.util.Log;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.sampledemoapply.data.SensorData;
 
+import java.io.BufferedReader;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStreamWriter;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
-
-import javax.net.ssl.HttpsURLConnection;
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
     private static final Integer START_DEFAULT = 500; // センサー値蓄積開始時間
@@ -38,13 +39,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private static final int SENSOR_PARAMETER_Z = 2; // センサー値：Z軸
 
     private SensorManager manager;
-    private TextView values1;
-    private TextView values2;
-    private TextView values3;
-    private Integer start1; // 開始時間
-    private Integer interval1; //間隔
-    private Integer start2; // 開始時間
-    private Integer interval2; //間隔
+    private TextView accelText;
+    private TextView gyroText;
+    private TextView magneText;
+    private Integer csvStart; // 開始時間
+    private Integer csvInterval; //間隔
+    private Integer comStart; // 開始時間
+    private Integer comInterval; //間隔
 
     /**
      * 各センサーデータリスト
@@ -66,7 +67,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     //タイマー処理用
     private Timer dataTimer = null; // データ蓄積
     private Timer csvTimer = null; // CSV出力
-    private Timer lteTimer = null; // LTE通信
+    private Timer comTimer = null; // 通信
 
     Handler mHandler = new Handler();
     @Override
@@ -75,16 +76,16 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         setContentView(R.layout.activity_main);
 
         // CSVファイル
-        start1 = 30 * 60 * 1000;    // スタート時間     TODO:後々この値をユーザが設定可能予定
-        interval1 = 30 * 60 * 1000; // 間隔時間（30分） TODO:後々この値をユーザが設定可能予定
+        csvStart = 30 * 60 * 1000;    // スタート時間     TODO:後々この値をユーザが設定可能予定
+        csvInterval = 30 * 60 * 1000; // 間隔時間（30分） TODO:後々この値をユーザが設定可能予定
 
         // LTE通信
-        start2 = 4 * 60 * 60 * 1000;    // スタート時間     TODO:後々この値をユーザが設定可能予定
-        interval2 = 4 * 60 * 60 * 1000; // 間隔時間（4時間） TODO:後々この値をユーザが設定可能予定
+        comStart = 4 * 60 * 60 * 1000;    // スタート時間     TODO:後々この値をユーザが設定可能予定
+        comInterval = 4 * 60 * 60 * 1000; // 間隔時間（4時間） TODO:後々この値をユーザが設定可能予定
 
-        values1 = (TextView)findViewById(R.id.accel); // 加速度
-        values2 = (TextView)findViewById(R.id.gyro); // ジャイロ
-        values3 = (TextView)findViewById(R.id.inclination); // 地磁気
+        accelText = findViewById(R.id.accel); // 加速度
+        gyroText = findViewById(R.id.gyro); // ジャイロ
+        magneText = findViewById(R.id.magne); // 地磁気
         manager = (SensorManager)getSystemService(SENSOR_SERVICE);
 
         // タイマー処理
@@ -122,6 +123,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                         sensorData.setLogDt(date);
                         sensorData.setKsk(ksk);
                         sensorData.setGyro(gyro);
+                        sensorData.setMgn(mgn);
                         data.add(sensorData);
                     }
                 });
@@ -141,7 +143,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                         SimpleDateFormat date = new SimpleDateFormat("yyyy/MM/dd");
                         SimpleDateFormat time = new SimpleDateFormat("HH:mm:ss");
 
-                        String header = "DATE,TIME,AX,AY,AZ,GX,GY,GZ\n";// ヘッダー部分
+                        String header = "DATE,TIME,AX,AY,AZ,GX,GY,GZ,MX,MY,MZ\n";// ヘッダー部分
                         String fileName = id + "-" + date.format(now)
                                              + "_" + time.format(now) + "_log.csv";
                         // 保存先
@@ -153,6 +155,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                             for(SensorData list:data){
                                 float[] kasoku = list.getKsk();
                                 float[] jairo = list.getGyro();
+                                float[] magne = list.getMgn();
                                 // ログデータ内容
                                 str += date.format(list.getLogDt()) + ","
                                     + time.format(list.getLogDt()) + ","
@@ -162,6 +165,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                                     + jairo[SENSOR_PARAMETER_X] + ","
                                     + jairo[SENSOR_PARAMETER_Y] + ","
                                     + jairo[SENSOR_PARAMETER_Z] + ","
+                                    + magne[SENSOR_PARAMETER_X] + ","
+                                    + magne[SENSOR_PARAMETER_Y] + ","
+                                    + magne[SENSOR_PARAMETER_Z]
                                     + "\n";
                             }
                             FileOutputStream outputStream = new FileOutputStream(file);
@@ -174,53 +180,24 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     }
                 });
             }
-        },start1,interval1);
+        },csvStart,csvInterval);
 
         // タイマー処理
-        lteTimer = new Timer(true);
+        comTimer = new Timer(true);
         // LTE通信を使用してDBに登録
-        lteTimer.schedule(new TimerTask() {
+        comTimer.schedule(new TimerTask() {
             @Override
             public void run() {
                 mHandler.post( new Runnable(){
                     public void run(){
                         // 通信
-                        String targetUrl = ""; // 接続サーバ
-                        String prm = "value=test";
-                        try {
-                            URL url = new URL(targetUrl);
-                            HttpURLConnection con = (HttpURLConnection)url.openConnection();
-                            con.setDoInput(true);
-                            con.setDoOutput(true);
-                            con.setRequestMethod("POST");
-                            con.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-                            OutputStreamWriter out = new OutputStreamWriter(con.getOutputStream());
-                            out.write(prm);
-                            out.close();
-                            // データ送信
-                            con.connect();
 
-                            InputStream is;
-                            int code = con.getResponseCode();
-                            switch(code){
-                                case 200:
-                                    is = con.getInputStream();
-                                    break;
-                                case 403:
-                                    is = con.getErrorStream();
-                                    break;
-                                default:
-                                    break;
-                            }
-                        } catch (MalformedURLException e) {
-                            throw new RuntimeException(e);
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
+                        // DB登録
+
                     }
                 });
             }
-        },start2,interval2);
+        }, comStart, comInterval);
     }
 
     @Override
@@ -240,17 +217,17 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         // 加速度が取得できている場合
         if(kskSensors.size() > 0) {
             Sensor s = kskSensors.get(0);
-            manager.registerListener(this, s, SensorManager.SENSOR_DELAY_FASTEST); // 遅延無し
+            manager.registerListener(this, s, SensorManager.SENSOR_DELAY_NORMAL); // 遅延無し
         }
         // ジャイロセンサー値が取得できている場合
         if(gyrSensors.size() > 0) {
             Sensor s = gyrSensors.get(0);
-            manager.registerListener(this, s, SensorManager.SENSOR_DELAY_FASTEST); // 遅延無し
+            manager.registerListener(this, s, SensorManager.SENSOR_DELAY_NORMAL); // 遅延無し
         }
         // 磁力センサー値が取得できている場合
         if(mgnSensors.size() > 0) {
             Sensor s = mgnSensors.get(0);
-            manager.registerListener(this, s, SensorManager.SENSOR_DELAY_FASTEST); // 遅延無し
+            manager.registerListener(this, s, SensorManager.SENSOR_DELAY_NORMAL); // 遅延無し
         }
     }
 
@@ -268,7 +245,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             + "\nX軸:" + ksk[SENSOR_PARAMETER_X]
             + "\nY軸:" + ksk[SENSOR_PARAMETER_Y]
             + "\nZ軸:" + ksk[SENSOR_PARAMETER_Z];
-            values1.setText(str);
+            accelText.setText(str);
         }
         // イベント内容：ジャイロ
         if(event.sensor.getType() == Sensor.TYPE_GYROSCOPE) {
@@ -279,9 +256,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 + "\nX軸中心:" + gyro[SENSOR_PARAMETER_X]
                 + "\nY軸中心:" + gyro[SENSOR_PARAMETER_Y]
                 + "\nZ軸中心:" + gyro[SENSOR_PARAMETER_Z];
-            values2.setText(str);
+            gyroText.setText(str);
         }
-        // イベント内容：磁力
+        // イベント内容：地磁気
         if(event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD){
             // 書き込み用
             mgn = event.values;
@@ -290,7 +267,32 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     + "\nX軸:" + mgn[SENSOR_PARAMETER_X]
                     + "\nY軸:" + mgn[SENSOR_PARAMETER_Y]
                     + "\nZ軸:" + mgn[SENSOR_PARAMETER_Z];
-            values3.setText(str);
+            magneText.setText(str);
+        }
+    }
+
+    /*
+    * 通信用
+    */
+    public static String httpGet(String strURL) {
+
+        try {
+            URL url = new URL(strURL);
+            URLConnection connection = url.openConnection();
+            connection.setDoInput(true);
+            InputStream stream = connection.getInputStream();
+            BufferedReader input = new BufferedReader(new InputStreamReader(stream));
+            String data = "";
+            String tmp = "";
+            while ((tmp = input.readLine()) != null) {
+                data += tmp;
+            }
+
+            stream.close();
+            input.close();
+            return data;
+        } catch (Exception e) {
+            return e.toString();
         }
     }
 }
