@@ -4,26 +4,17 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.os.AsyncTask;
+import android.os.BatteryManager;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
-import android.util.Log;
 import android.widget.TextView;
-
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.sampledemoapply.data.SensorData;
 
-import java.io.BufferedReader;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLConnection;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -76,12 +67,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         setContentView(R.layout.activity_main);
 
         // CSVファイル
-        csvStart = 30 * 60 * 1000;    // スタート時間     TODO:後々この値をユーザが設定可能予定
+/*        csvStart = 30 * 60 * 1000;    // スタート時間     TODO:後々この値をユーザが設定可能予定
         csvInterval = 30 * 60 * 1000; // 間隔時間（30分） TODO:後々この値をユーザが設定可能予定
 
         // LTE通信
         comStart = 4 * 60 * 60 * 1000;    // スタート時間     TODO:後々この値をユーザが設定可能予定
         comInterval = 4 * 60 * 60 * 1000; // 間隔時間（4時間） TODO:後々この値をユーザが設定可能予定
+*/
+        csvStart = 30 * 1000;    // スタート時間
+        csvInterval = 30 * 1000; // 間隔時間（30秒）
+        // LTE通信
+        comStart = 60 * 1000;    // スタート時間
+        comInterval = 60 * 1000; // 間隔時間（60秒）
 
         accelText = findViewById(R.id.accel); // 加速度
         gyroText = findViewById(R.id.gyro); // ジャイロ
@@ -96,27 +93,25 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             public void run() {
                 mHandler.post( new Runnable(){
                     public void run(){
-                        // パーミッションの問題でLED設定ファイルが書き込めないので一旦実装からはずす
-                        /*
                         // バッテリー残量取得
-                        BatteryManager bm = (BatteryManager)getSystemService(BATTERY_SERVICE);
+/*                        BatteryManager bm = (BatteryManager)getSystemService(BATTERY_SERVICE);
                         int batLevel = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
-                        LedActivity a = new LedActivity();
+                        LedActivity ledAction = new LedActivity();
                         // バッテリー残量チェック
                         if (batLevel < 50) {
                             // LED:黄色
-                            a.Led1_GreenOn();
-                            a.Led1_RedOn();
+                            ledAction.Led1_GreenOn();
+                            ledAction.Led1_RedOn();
                         } else if (batLevel <= 20) {
                             // LED:赤色
-                            a.Led1_GreenOff();
-                            a.Led1_RedOn();
+                            ledAction.Led1_GreenOff();
+                            ledAction.Led1_RedOn();
                         } else {
                             // LED:緑色
-                            a.Led1_RedOff();
-                            a.Led1_GreenOn();
+                            ledAction.Led1_RedOff();
+                            ledAction.Led1_GreenOn();
                         }
-                        */
+*/
                         // ログデータの蓄積処理
                         SensorData sensorData = new SensorData();
                         Date date = new Date();
@@ -138,14 +133,16 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             public void run() {
                 mHandler.post( new Runnable(){
                     public void run(){
-                        String id = "99999"; // 利用者ID
+                        String id = "9999999999"; // 利用者ID
                         Date now = new Date(); // 現在日時
+                        SimpleDateFormat fileDate = new SimpleDateFormat("yyyyMMdd");
+                        SimpleDateFormat fileTime = new SimpleDateFormat("HHmmss");
                         SimpleDateFormat date = new SimpleDateFormat("yyyy/MM/dd");
                         SimpleDateFormat time = new SimpleDateFormat("HH:mm:ss");
 
                         String header = "DATE,TIME,AX,AY,AZ,GX,GY,GZ,MX,MY,MZ\n";// ヘッダー部分
-                        String fileName = id + "-" + date.format(now)
-                                             + "_" + time.format(now) + "_log.csv";
+                        String fileName = id + "-" + fileDate.format(now)
+                                             + "_" + fileTime.format(now) + "_log.csv";
                         // 保存先
                         String path = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS).toString();
                         String file = path + "/" + fileName;
@@ -190,10 +187,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             public void run() {
                 mHandler.post( new Runnable(){
                     public void run(){
-                        // 通信
-
                         // DB登録
-
+                        DbInsert dbInsert = new DbInsert();
+                        dbInsert.execute();
                     }
                 });
             }
@@ -217,17 +213,17 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         // 加速度が取得できている場合
         if(kskSensors.size() > 0) {
             Sensor s = kskSensors.get(0);
-            manager.registerListener(this, s, SensorManager.SENSOR_DELAY_NORMAL); // 遅延無し
+            manager.registerListener(this, s, SensorManager.SENSOR_DELAY_UI); // 遅延無し
         }
         // ジャイロセンサー値が取得できている場合
         if(gyrSensors.size() > 0) {
             Sensor s = gyrSensors.get(0);
-            manager.registerListener(this, s, SensorManager.SENSOR_DELAY_NORMAL); // 遅延無し
+            manager.registerListener(this, s, SensorManager.SENSOR_DELAY_UI); // 遅延無し
         }
         // 磁力センサー値が取得できている場合
         if(mgnSensors.size() > 0) {
             Sensor s = mgnSensors.get(0);
-            manager.registerListener(this, s, SensorManager.SENSOR_DELAY_NORMAL); // 遅延無し
+            manager.registerListener(this, s, SensorManager.SENSOR_DELAY_UI); // 遅延無し
         }
     }
 
@@ -268,31 +264,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     + "\nY軸:" + mgn[SENSOR_PARAMETER_Y]
                     + "\nZ軸:" + mgn[SENSOR_PARAMETER_Z];
             magneText.setText(str);
-        }
-    }
-
-    /*
-    * 通信用
-    */
-    public static String httpGet(String strURL) {
-
-        try {
-            URL url = new URL(strURL);
-            URLConnection connection = url.openConnection();
-            connection.setDoInput(true);
-            InputStream stream = connection.getInputStream();
-            BufferedReader input = new BufferedReader(new InputStreamReader(stream));
-            String data = "";
-            String tmp = "";
-            while ((tmp = input.readLine()) != null) {
-                data += tmp;
-            }
-
-            stream.close();
-            input.close();
-            return data;
-        } catch (Exception e) {
-            return e.toString();
         }
     }
 }

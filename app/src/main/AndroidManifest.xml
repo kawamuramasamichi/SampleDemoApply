@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools"
-    android:sharedUserId="android.uid.system">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
+    <!--android:sharedUserId="android.uid.system"-->
     <!-- センサー -->
     <uses-feature android:name="android.hardware.sensor.gyroscope" android:required="true" />
     <!-- 書き込み許可 -->
