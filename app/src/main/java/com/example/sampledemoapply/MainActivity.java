@@ -55,6 +55,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
      */
     float[] mgn = new float[3];
 
+    //
+    private boolean accSensorFlg;
+    private boolean gyroSensorFlg;
+    private boolean magSensorFlg;
+
     //タイマー処理用
     private Timer dataTimer = null; // データ蓄積
     private Timer csvTimer = null; // CSV出力
@@ -148,28 +153,28 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                         String file = path + "/" + fileName;
 
                         try {
-                            String str = header;
+                            StringBuilder str = new StringBuilder(header);
                             for(SensorData list:data){
                                 float[] kasoku = list.getKsk();
                                 float[] jairo = list.getGyro();
                                 float[] magne = list.getMgn();
                                 // ログデータ内容
-                                str += date.format(list.getLogDt()) + ","
-                                    + time.format(list.getLogDt()) + ","
-                                    + kasoku[SENSOR_PARAMETER_X] + ","
-                                    + kasoku[SENSOR_PARAMETER_Y] + ","
-                                    + kasoku[SENSOR_PARAMETER_Z] + ","
-                                    + jairo[SENSOR_PARAMETER_X] + ","
-                                    + jairo[SENSOR_PARAMETER_Y] + ","
-                                    + jairo[SENSOR_PARAMETER_Z] + ","
-                                    + magne[SENSOR_PARAMETER_X] + ","
-                                    + magne[SENSOR_PARAMETER_Y] + ","
-                                    + magne[SENSOR_PARAMETER_Z]
-                                    + "\n";
+                                str.append(date.format(list.getLogDt()));
+                                str.append(",").append(time.format(list.getLogDt()));
+                                str.append(",").append(kasoku[SENSOR_PARAMETER_X]);
+                                str.append(",").append(kasoku[SENSOR_PARAMETER_Y]);
+                                str.append(",").append(kasoku[SENSOR_PARAMETER_Z]);
+                                str.append(",").append(jairo[SENSOR_PARAMETER_X]);
+                                str.append(",").append(jairo[SENSOR_PARAMETER_Y]);
+                                str.append(",").append(jairo[SENSOR_PARAMETER_Z]);
+                                str.append(",").append(magne[SENSOR_PARAMETER_X]);
+                                str.append(",").append(magne[SENSOR_PARAMETER_Y]);
+                                str.append(",").append(magne[SENSOR_PARAMETER_Z]);
+                                str.append("\n");
                             }
                             FileOutputStream outputStream = new FileOutputStream(file);
                             // ログデータ出力
-                            outputStream.write(str.getBytes());
+                            outputStream.write(str.toString().getBytes());
                             outputStream.close();
                         } catch(IOException e){
                             e.printStackTrace();
@@ -204,6 +209,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     @Override
+    protected void onPause() {
+        super.onPause();
+        //センサーマネージャのリスナ登録破棄
+        if (accSensorFlg || gyroSensorFlg || magSensorFlg) {
+            manager.unregisterListener(this);
+            accSensorFlg = false;
+            gyroSensorFlg = false;
+            magSensorFlg = false;
+        }
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
         // Listenerの登録
@@ -214,16 +231,19 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         if(kskSensors.size() > 0) {
             Sensor s = kskSensors.get(0);
             manager.registerListener(this, s, SensorManager.SENSOR_DELAY_UI); // 遅延無し
+            accSensorFlg = true;
         }
         // ジャイロセンサー値が取得できている場合
         if(gyrSensors.size() > 0) {
             Sensor s = gyrSensors.get(0);
             manager.registerListener(this, s, SensorManager.SENSOR_DELAY_UI); // 遅延無し
+            gyroSensorFlg = true;
         }
         // 磁力センサー値が取得できている場合
         if(mgnSensors.size() > 0) {
             Sensor s = mgnSensors.get(0);
             manager.registerListener(this, s, SensorManager.SENSOR_DELAY_UI); // 遅延無し
+            magSensorFlg = true;
         }
     }
 
