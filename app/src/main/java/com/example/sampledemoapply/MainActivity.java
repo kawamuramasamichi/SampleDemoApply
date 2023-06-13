@@ -15,10 +15,12 @@ import com.example.sampledemoapply.data.SensorData;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -55,15 +57,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
      */
     float[] mgn = new float[3];
 
-    //
     private boolean accSensorFlg;
     private boolean gyroSensorFlg;
     private boolean magSensorFlg;
-
-    //タイマー処理用
-    private Timer dataTimer = null; // データ蓄積
-    private Timer csvTimer = null; // CSV出力
-    private Timer comTimer = null; // 通信
 
     Handler mHandler = new Handler();
     @Override
@@ -79,8 +75,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         comStart = 4 * 60 * 60 * 1000;    // スタート時間     TODO:後々この値をユーザが設定可能予定
         comInterval = 4 * 60 * 60 * 1000; // 間隔時間（4時間） TODO:後々この値をユーザが設定可能予定
 */
-        csvStart = 30 * 1000;    // スタート時間
-        csvInterval = 30 * 1000; // 間隔時間（30秒）
+        csvStart = 15 * 1000;    // スタート時間
+        csvInterval = 15 * 1000; // 間隔時間（30秒）
         // LTE通信
         comStart = 60 * 1000;    // スタート時間
         comInterval = 60 * 1000; // 間隔時間（60秒）
@@ -91,7 +87,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         manager = (SensorManager)getSystemService(SENSOR_SERVICE);
 
         // タイマー処理
-        dataTimer = new Timer(true);
+        // タイマー処理用
+        // データ蓄積
+        Timer dataTimer = new Timer(true);
         // データ蓄積処理
         dataTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
@@ -121,9 +119,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                         SensorData sensorData = new SensorData();
                         Date date = new Date();
                         sensorData.setLogDt(date);
-                        sensorData.setKsk(ksk);
-                        sensorData.setGyro(gyro);
-                        sensorData.setMgn(mgn);
+                        sensorData.setKsk(ksk[0], ksk[1], ksk[2]);
+                        sensorData.setGyro(gyro[0], gyro[1], gyro[2]);
+                        sensorData.setMgn(mgn[0], mgn[1], mgn[2]);
                         data.add(sensorData);
                     }
                 });
@@ -131,7 +129,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         },START_DEFAULT,INTERVAL_DEFAULT);
 
         // タイマー処理
-        csvTimer = new Timer(true);
+        // CSV出力
+        Timer csvTimer = new Timer(true);
         // ログデータ出力(CSV)
         csvTimer.schedule(new TimerTask() {
             @Override
@@ -140,10 +139,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     public void run(){
                         String id = "9999999999"; // 利用者ID
                         Date now = new Date(); // 現在日時
-                        SimpleDateFormat fileDate = new SimpleDateFormat("yyyyMMdd");
-                        SimpleDateFormat fileTime = new SimpleDateFormat("HHmmss");
-                        SimpleDateFormat date = new SimpleDateFormat("yyyy/MM/dd");
-                        SimpleDateFormat time = new SimpleDateFormat("HH:mm:ss");
+                        SimpleDateFormat fileDate = new SimpleDateFormat("yyyyMMdd", Locale.JAPANESE);
+                        SimpleDateFormat fileTime = new SimpleDateFormat("HHmmss", Locale.JAPANESE);
+                        SimpleDateFormat date = new SimpleDateFormat("yyyy/MM/dd", Locale.JAPANESE);
+                        SimpleDateFormat time = new SimpleDateFormat("HH:mm:ss", Locale.JAPANESE);
 
                         String header = "DATE,TIME,AX,AY,AZ,GX,GY,GZ,MX,MY,MZ\n";// ヘッダー部分
                         String fileName = id + "-" + fileDate.format(now)
@@ -155,9 +154,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                         try {
                             StringBuilder str = new StringBuilder(header);
                             for(SensorData list:data){
-                                float[] kasoku = list.getKsk();
-                                float[] jairo = list.getGyro();
-                                float[] magne = list.getMgn();
+                                BigDecimal[] kasoku = list.getKsk();
+                                BigDecimal[] jairo = list.getGyro();
+                                BigDecimal[] magne = list.getMgn();
                                 // ログデータ内容
                                 str.append(date.format(list.getLogDt()));
                                 str.append(",").append(time.format(list.getLogDt()));
@@ -185,7 +184,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         },csvStart,csvInterval);
 
         // タイマー処理
-        comTimer = new Timer(true);
+        // 通信
+        Timer comTimer = new Timer(true);
         // LTE通信を使用してDBに登録
         comTimer.schedule(new TimerTask() {
             @Override
