@@ -47,6 +47,6 @@ public class SensorData {
 
     private BigDecimal convertBigDecimal(float data) {
         BigDecimal ret = new BigDecimal(String.valueOf(data));
-        return ret.setScale(2, BigDecimal.ROUND_HALF_UP);
+        return ret.setScale(3, BigDecimal.ROUND_HALF_UP);
     }
 }

@@ -16,6 +16,9 @@ import com.example.sampledemoapply.data.SensorData;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.Statement;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -193,8 +196,31 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 mHandler.post( new Runnable(){
                     public void run(){
                         // DB登録
-                        DbInsert dbInsert = new DbInsert();
-                        dbInsert.execute();
+                        try{
+                            Class.forName("com.mysql.jdbc.Driver");
+                            Connection conn= DriverManager.getConnection("jdbc:mysql://133.242.152.41:3306/test_db","test_user_01","fsvrV@1+");
+                            Statement stmt = conn.createStatement();
+                            String sql = null;
+                            for(SensorData list:data){
+                                sql = "insert into SensorDataM (user_id,sensor_data_dt,sensor_data_time,"
+                                    + "sensor_data_accel_x,sensor_data_accel_y,sensor_data_accel_z,"
+                                    + "sensor_data_gyro_x,sensor_data_gyro_y,sensor_data_gyro_z,"
+                                    + "sensor_data_magne_x,sensor_data_magne_y,sensor_data_magne_z)"
+                                    + "values ('"
+                                    + "999999999," + list.getLogDt() + "," + list.getLogDt() + ","
+                                    + list.getKsk()[0] + "," + list.getKsk()[1] + "," + list.getKsk()[2] + ","
+                                    + list.getGyro()[0] + "," + list.getGyro()[1] + "," + list.getGyro()[2] + ","
+                                    + list.getMgn()[0] + "," + list.getMgn()[1] + "," + list.getMgn()[2]
+                                    + "')";
+                            }
+                            stmt.executeUpdate(sql);
+                            stmt.close();
+                            conn.close();
+                        }catch(Exception e){
+
+                        }
+//                        DbInsert dbInsert = new DbInsert();
+//                        dbInsert.execute();
                     }
                 });
             }
