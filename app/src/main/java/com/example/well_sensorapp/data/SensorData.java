@@ -1,7 +1,6 @@
-package com.example.sampledemoapply.data;
+package com.example.well_sensorapp.data;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.Date;
 
 public class SensorData {

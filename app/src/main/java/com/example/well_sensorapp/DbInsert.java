@@ -1,4 +1,4 @@
-package com.example.sampledemoapply;
+package com.example.well_sensorapp;
 
 import java.sql.Connection;
 import java.sql.Statement;
